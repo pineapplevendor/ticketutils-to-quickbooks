@@ -11,6 +11,7 @@
 
 (defroutes app-routes
   (GET "/" [] (views/home))
+  (GET "/privacy" [] (views/privacy))
   (GET "/export-auth" [] (redirect (quickbooks/get-authorization-url)))
   (GET "/export-data" [realmId code] (views/export-data-page realmId code))
   (POST "/export-data" {form-params :params} (views/export-data-results-page form-params))
