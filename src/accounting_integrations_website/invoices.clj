@@ -5,5 +5,6 @@
   [customer :- s/Str
    number :- s/Int
    date :- java.util.Date
-   amount :- s/Num])
+   amount :- s/Num
+   payment-complete? :- s/Bool])
 

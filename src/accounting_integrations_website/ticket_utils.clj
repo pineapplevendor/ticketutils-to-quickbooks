@@ -56,12 +56,13 @@
    :Page current-page
    :ItemsPerPage page-size})
 
-(defn get-invoice-from-item [{:keys [InvoiceId InvoiceNumber InvoiceDate ZoneCode ExternalOrderNumber]
+(defn get-invoice-from-item [{:keys [InvoiceId InvoiceNumber InvoiceDate ZoneCode ExternalOrderNumber PaymentStatus]
                                   {:keys [Amount]} :GrandTotal}]
   (invoices/map->Invoice {:customer ZoneCode 
                           :number InvoiceNumber 
                           :date (parse-date InvoiceDate) 
-                          :amount Amount}))
+                          :amount Amount
+                          :payment-complete? (= PaymentStatus 3)}))
 
 (defn get-customer-name [secret token customer-id]
   (let [{:keys [] {:keys [FirstName LastName]} :BillingInfo} 
@@ -76,9 +77,9 @@
                                                  Company)
                                        :number PONumber
                                        :date (parse-date PurchaseOrderDate)
-                                       :amount Amount}))
+                                       :amount Amount
+                                       :payment-complete? (= PaymentStatus 3)}))
 
-;the request-body-getter function should be a partially applied function that just needs a current-page
 (defn get-items [secret token path partial-request-body-getter current-page]
   (let [request-body (partial-request-body-getter current-page)
         response (get-response-body (post-ticket-utils secret token path request-body))]

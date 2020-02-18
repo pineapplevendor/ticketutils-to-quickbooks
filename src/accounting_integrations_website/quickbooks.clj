@@ -6,7 +6,7 @@
   (:import (java.util ArrayList)
            (com.intuit.ipp.data Item Account ItemTypeEnum ReferenceType Vendor Customer ReferenceType Line
                                 LineDetailTypeEnum SalesItemLineDetail Invoice PurchaseOrder
-                                ItemBasedExpenseLineDetail BillableStatusEnum)
+                                ItemBasedExpenseLineDetail BillableStatusEnum PurchaseOrderStatusEnum)
            (com.intuit.ipp.services DataService)
            (com.intuit.ipp.core ServiceType Context)
            (com.intuit.ipp.util Config)
@@ -53,8 +53,11 @@
 (defn create-entity [data-service entity]
   (.add data-service entity))
 
-(defn create-entities [data-service entities]
-  (map #(.add data-service %) entities))
+(defn update-entity [data-service entity]
+  (.update data-service entity))
+
+(defn delete-entity [data-service entity]
+  (.delete data-service entity))
 
 (defn get-entities [data-service query]
   (.getEntities (.executeQuery data-service query)))
@@ -102,6 +105,10 @@
   (let [customer (doto (Customer.) (.setDisplayName (get-customer-name customer-name)))]
     (create-entity data-service customer)))
 
+(defn get-invoice [data-service doc-number]
+  (let [query (str "select * from Invoice where DocNumber = '" doc-number "'")]
+    (get-entity data-service query)))
+
 (defn get-invoice-line [customer-id tickets-item-id invoice]
   (doto (Line.)
     (.setAmount (BigDecimal. (:amount invoice)))
@@ -121,12 +128,34 @@
                     (.setLine (doto (ArrayList.) (.add (get-invoice-line customer-id tickets-item-id invoice)))))]
       (create-entity data-service invoice))))
 
-(defn create-invoice-with-service [access-token realm-id invoice]
-  (let [data-service (quickbooks-client/get-data-service access-token realm-id)]
-    (create-invoice data-service invoice)))
+(defn sync-invoice [data-service invoice]
+  (let [current-invoice (get-invoice data-service (:number invoice))]
+    (if (not current-invoice)
+      {:created (create-invoice data-service invoice)}
+      {:existing current-invoice})))
 
-(defn create-invoices [access-token realm-id invoices]
-  (pmap #(create-invoice-with-service access-token realm-id %) invoices))
+(defn sync-invoice-with-service [access-token realm-id invoice]
+  (let [data-service (quickbooks-client/get-data-service access-token realm-id)]
+    (sync-invoice data-service invoice)))
+
+(defn sync-invoices [access-token realm-id invoices]
+  (pmap #(sync-invoice-with-service access-token realm-id %) invoices))
+
+(defn get-purchase-order [data-service doc-number]
+  (let [query (str "select * from PurchaseOrder where DocNumber = '" doc-number "'")]
+    (get-entity data-service query)))
+
+(defn mark-po-as-paid [data-service purchase-order]
+  (doto purchase-order
+    (.setSparse true)
+    (.setPOStatus PurchaseOrderStatusEnum/CLOSED))
+  (update-entity data-service purchase-order))
+
+;;requires update if PO has been marked as payment complete since it was created in QuickBooks
+;;does NOT update for items marked as completed in QuickBooks, but not completed in TicketUtils
+(defn purchase-order-requires-update? [quickbooks-po ticket-utils-po]
+  (and (:payment-complete? ticket-utils-po)
+       (= PurchaseOrderStatusEnum/OPEN (.getPOStatus quickbooks-po))))
 
 (defn get-purchase-order-line [vendor-id tickets-item-id purchase-order]
   (doto (Line.)
@@ -152,11 +181,20 @@
                                        (.add (get-purchase-order-line vendor-id tickets-item-id purchase-order)))))]
       (create-entity data-service purchase-order))))
 
-(defn create-purchase-order-with-service [access-token realm-id purchase-order]
+(defn sync-purchase-order [data-service purchase-order]
+  (let [current-purchase-order (get-purchase-order data-service (:number purchase-order))]
+    (cond
+      (not current-purchase-order) 
+      {:created (create-purchase-order data-service purchase-order)}
+      (purchase-order-requires-update? current-purchase-order purchase-order) 
+      {:updated (mark-po-as-paid data-service purchase-order)}
+      :else
+      {:existing current-purchase-order})))
+
+(defn sync-purchase-order-with-service [access-token realm-id purchase-order]
   (let [data-service (quickbooks-client/get-data-service access-token realm-id)]
-    (create-purchase-order data-service purchase-order)))
+    (sync-purchase-order data-service purchase-order)))
 
-(defn create-purchase-orders [access-token realm-id purchase-orders]
-  (pmap #(create-purchase-order-with-service access-token realm-id %) purchase-orders))
-
+(defn sync-purchase-orders [access-token realm-id purchase-orders]
+  (pmap #(sync-purchase-order-with-service access-token realm-id %) purchase-orders))
 
