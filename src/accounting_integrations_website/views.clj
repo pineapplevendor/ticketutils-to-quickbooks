@@ -66,7 +66,7 @@
           (:realm-id unvalidated-form)
           (:access-token unvalidated-form)))
       (do
-        (def created (export-controller/export-data 
+        (def synced (export-controller/sync-data 
           (:item validated)
           (:start-date validated)
           (:end-date validated)
@@ -75,11 +75,11 @@
           (:realm-id validated)
           (:access-token validated)))
         (page/html5
-          [:h1 "Exported your " (count created) 
-           " " (format-item (:item validated)) 
-           " from " (format-date (:start-date validated)) 
-           " to " (format-date (:end-date validated))
-           " to QuickBooks."]
+          [:h1 "Exported your data from " (format-date (:start-date validated))
+           " to " (format-date (:end-date validated)) "."]
+          [:h3 "Created " (:created synced) " records."]
+          [:h3 "Updated " (:updated synced) " records."]
+          [:h3 (:existing synced) " records already existed."]
           [:p "Click "
            [:a {:href "/"} "here"]
            " to return home and export more data"])))))

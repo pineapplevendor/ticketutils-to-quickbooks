@@ -2,14 +2,20 @@
   (:require [accounting-integrations-website.quickbooks :as quickbooks]
             [accounting-integrations-website.ticket-utils :as ticket-utils]))
 
-(defn export-data [item start-date end-date ticket-utils-token ticket-utils-secret realm-id access-token]
-  (if (= :invoices item)
-    (quickbooks/sync-invoices
-      access-token
-      realm-id
-      (ticket-utils/get-invoices ticket-utils-secret ticket-utils-token start-date end-date))
-    (quickbooks/sync-purchase-orders
-      access-token
-      realm-id
-      (ticket-utils/get-purchase-orders ticket-utils-secret ticket-utils-token start-date end-date))))
+(defn summarize-export [synced]
+  {:existing (count (filter some? (map :existing synced)))
+   :created (count (filter some? (map :created synced)))
+   :updated (count (filter some? (map :updated synced)))})
+
+(defn sync-data [item start-date end-date ticket-utils-token ticket-utils-secret realm-id access-token]
+  (summarize-export 
+    (if (= :invoices item)
+      (quickbooks/sync-invoices
+        access-token
+        realm-id
+        (ticket-utils/get-invoices ticket-utils-secret ticket-utils-token start-date end-date))
+      (quickbooks/sync-purchase-orders
+        access-token
+        realm-id
+        (ticket-utils/get-purchase-orders ticket-utils-secret ticket-utils-token start-date end-date)))))
 
