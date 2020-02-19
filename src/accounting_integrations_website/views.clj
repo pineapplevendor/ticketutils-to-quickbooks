@@ -76,10 +76,10 @@
           (:access-token validated)))
         (page/html5
           [:h1 "Exported your data from " (format-date (:start-date validated))
-           " to " (format-date (:end-date validated)) "."]
-          [:h3 "Created " (:created synced) " records."]
-          [:h3 "Updated " (:updated synced) " records."]
-          [:h3 (:existing synced) " records already existed."]
+           " to " (format-date (:end-date validated))]
+          [:h3 "Created " (:created synced) " records"]
+          [:h3 "Updated " (:updated synced) " records"]
+          [:h3 (:existing synced) " records already existed"]
           [:p "Click "
            [:a {:href "/"} "here"]
            " to return home and export more data"])))))
