@@ -127,8 +127,4 @@
     [:h1 "Privacy"]
     [:p 
      "The Can Opener Integration desktop app retrieves retrieves your purchase orders and invoices
-      from TicketUtils. It uses that data to create purchase orders and invoices in QuickBooks.
-
-      Neither the desktop app nor canopenerintegrations.com saves either your accounting data,
-      e.g. purchase orders and invoices, or your API access info for either TicketUtils or
-      QuickBooks."]))
+      from TicketUtils. It uses that data to create purchase orders and invoices in QuickBooks."]))
