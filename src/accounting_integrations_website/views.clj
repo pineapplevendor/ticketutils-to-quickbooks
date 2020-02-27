@@ -2,6 +2,7 @@
   (:require [hiccup.page :as page]
             [accounting-integrations-website.quickbooks :as quickbooks]
             [accounting-integrations-website.export-controller :as export-controller]
+            [accounting-integrations-website.session-controller :as session-controller]
             [accounting-integrations-website.input-form :as input-form]
             [ring.util.anti-forgery :as anti-forgery]))
 
@@ -88,13 +89,36 @@
   (page/html5
     (render-export-data-form nil nil nil nil nil realm-id (quickbooks/get-access-token code))))
 
-(defn home []
+(defn connected-to-quickbooks [session auth-code realm-id]
+  (session-controller/set-tokens (:user-id session) auth-code realm-id))
+
+(defn render-logged-in-home [session]
+  (let [user-state (session-controller/get-user-state session)]
+    (if (or (:access-token user-state) (:refresh-token user-state))
+      [:p "Click " 
+        [:a {:href "/export-auth"} "here"]
+        " to export your data to QuickBooks"]
+      [:p "Click " 
+        [:a {:href "/connect-to-quickbooks"} "here"]
+        " to grant us permission to export your data to QuickBooks"])))
+
+(defn home [session]
+  (println "session " session)
   (page/html5
     [:h1 "Welcome to Can Opener Integrations"]
     [:h3 "This is a tool to export purchase orders and invoices from TicketUtils to QuickBooks"]
-    [:p "Click " 
-     [:a {:href "/export-auth"} "here"]
-     " to authenticate with QuickBooks and export your data"]))
+    (if (:user-id session)
+      (render-logged-in-home session)
+      [:p "Please log in "
+        [:a {:href "/login"} "here"]])))
+
+(defn logged-in [session]
+  (page/html5
+    [:h1 "Greetings"]
+    [:div (if (:user-id session)
+            [:p "You are successfully logged in! You can return home to start exporting data."]
+            [:p "Failed to log in. Please return home to try again."])
+     [:a {:href "/"} "return home"]]))
 
 (defn privacy []
   (page/html5

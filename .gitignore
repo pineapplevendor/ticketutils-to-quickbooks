@@ -9,5 +9,6 @@ pom.xml.asc
 /.lein-*
 /.nrepl-port
 set-env-vars.sh
+can-opener-user-credentials.csv
 *.swo
 *.swp

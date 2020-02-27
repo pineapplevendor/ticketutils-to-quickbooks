@@ -28,21 +28,50 @@
 (defn get-redirect-url []
   (env :quickbooks-redirect-url))
 
+(defn get-login-redirect-url []
+  (env :quickbooks-logged-in-url))
+
+(defn get-connect-redirect-url []
+  (env :quickbooks-connected-url))
+
 (defn get-oauth-config []
   (.buildConfig 
     (.callDiscoveryAPI (OAuth2Config$OAuth2ConfigBuilder. (get-client-id) (get-client-secret)) 
                        (get-env))))
 
+(defn get-login-url []
+  (let [oauth-config (get-oauth-config)
+        csrf (.generateCSRFToken oauth-config)
+        scopes (doto (ArrayList.) (.add Scope/OpenIdAll))]
+    (.prepareUrl oauth-config scopes (get-login-redirect-url) csrf)))
+
+(defn get-id-token [auth-code]
+  (let [oauth-config (get-oauth-config)
+        client (OAuth2PlatformClient. oauth-config)
+        bearer-token-response (.retrieveBearerTokens client auth-code (get-login-redirect-url))]
+    (.getIdToken bearer-token-response)))
+
 (defn get-authorization-url []
   (let [oauth-config (get-oauth-config)
         csrf (.generateCSRFToken oauth-config)
         scopes (doto (ArrayList.) (.add Scope/Accounting))]
-    (.prepareUrl oauth-config scopes (get-redirect-url) csrf)))
+    (.prepareUrl oauth-config scopes (get-connect-redirect-url) csrf)))
+    ;(.prepareUrl oauth-config scopes "http://localhost:3000/" csrf)))
+
+(defn get-tokens [auth-code]
+  (let [oauth-config (get-oauth-config)
+        client (OAuth2PlatformClient. oauth-config)
+        bearer-token-response (.retrieveBearerTokens client auth-code (get-connect-redirect-url))]
+        ;bearer-token-response (.retrieveBearerTokens client auth-code "http://localhost:3000/")]
+    {:access-token (.getAccessToken bearer-token-response)
+     :access-token-expiration (.getExpiresIn bearer-token-response)
+     :refresh-token (.getRefreshToken bearer-token-response)
+     :refresh-token-expiration (.getXRefreshTokenExpiresIn bearer-token-response)}))
 
 (defn get-access-token [auth-code]
   (let [oauth-config (get-oauth-config)
         client (OAuth2PlatformClient. oauth-config)
-        bearer-token-response (.retrieveBearerTokens client auth-code (get-redirect-url))]
+        bearer-token-response (.retrieveBearerTokens client auth-code (get-connect-redirect-url))]
     (.getAccessToken bearer-token-response)))
 
 (def ticket-utils-date-format "yyyy-MM-dd")
