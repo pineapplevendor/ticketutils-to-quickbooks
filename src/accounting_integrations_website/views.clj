@@ -90,7 +90,10 @@
     (render-export-data-form nil nil nil nil nil realm-id (quickbooks/get-access-token code))))
 
 (defn connected-to-quickbooks [session auth-code realm-id]
-  (session-controller/set-tokens (:user-id session) auth-code realm-id))
+  (session-controller/set-tokens (:user-id session) auth-code realm-id)
+  (page/html5
+    [:div "hey chavis"]))
+  
 
 (defn render-logged-in-home [session]
   (let [user-state (session-controller/get-user-state session)]

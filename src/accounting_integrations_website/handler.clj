@@ -8,6 +8,7 @@
             [ring.adapter.jetty :refer [run-jetty]]
             [environ.core :refer [env]]
             [ring.middleware.session :refer [wrap-session]]
+            [ring.middleware.session.cookie :refer [cookie-store]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]])
   (:gen-class))
 
@@ -19,19 +20,24 @@
              session (assoc (:session r) :user-id login-info)]
          {:status 200
           :headers {"Content-Type" "text/html"}
+          :cookies {"hey" {:value "chavis"}}
           :session session
           :body (views/logged-in session)}))
   (GET "/connect-to-quickbooks" [] (redirect (quickbooks/get-authorization-url)))
-  (GET "/connected-to-quickbooks" [realmId code :as r]
-       (println "connected request " r)
-       (views/connected-to-quickbooks (:session r) code realmId))
+  (GET "/connected-to-quickbooks" [realmId code :as r] (views/connected-to-quickbooks (:session r) code realmId))
   (GET "/privacy" request  (views/privacy))
   (GET "/export-auth" [] (redirect (quickbooks/get-authorization-url)))
   (GET "/export-data" [realmId code] (views/export-data-page realmId code))
   (POST "/export-data" {form-params :params} (views/export-data-results-page form-params))
   (route/not-found "Not Found"))
 
-(def app (wrap-defaults app-routes site-defaults))
+(def config (-> site-defaults
+               (assoc-in [:session :store] (cookie-store {:key "abcdefghijklmnop"}))
+               (assoc-in [:session :flash] false)
+               (assoc-in [:session :cookie-attrs] {:http-only false})))
+(println "config" config)
+
+(def app (wrap-defaults app-routes config))
 
 (defn get-port []
   (or (Integer/parseInt (env :port)) 3000))
