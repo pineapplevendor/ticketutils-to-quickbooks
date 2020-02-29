@@ -89,12 +89,6 @@
   (page/html5
     (render-export-data-form nil nil nil nil nil realm-id (quickbooks/get-access-token code))))
 
-(defn connected-to-quickbooks [session auth-code realm-id]
-  (session-controller/set-tokens (:user-id session) auth-code realm-id)
-  (page/html5
-    [:div "hey chavis"]))
-  
-
 (defn render-logged-in-home [session]
   (let [user-state (session-controller/get-user-state session)]
     (if (or (:access-token user-state) (:refresh-token user-state))
@@ -106,22 +100,13 @@
         " to grant us permission to export your data to QuickBooks"])))
 
 (defn home [session]
-  (println "session " session)
   (page/html5
     [:h1 "Welcome to Can Opener Integrations"]
     [:h3 "This is a tool to export purchase orders and invoices from TicketUtils to QuickBooks"]
-    (if (:user-id session)
+    (if (:access-token session)
       (render-logged-in-home session)
       [:p "Please log in "
         [:a {:href "/login"} "here"]])))
-
-(defn logged-in [session]
-  (page/html5
-    [:h1 "Greetings"]
-    [:div (if (:user-id session)
-            [:p "You are successfully logged in! You can return home to start exporting data."]
-            [:p "Failed to log in. Please return home to try again."])
-     [:a {:href "/"} "return home"]]))
 
 (defn privacy []
   (page/html5

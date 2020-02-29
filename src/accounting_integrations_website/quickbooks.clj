@@ -45,24 +45,24 @@
         scopes (doto (ArrayList.) (.add Scope/OpenIdAll))]
     (.prepareUrl oauth-config scopes (get-login-redirect-url) csrf)))
 
-(defn get-id-token [auth-code]
+(defn get-open-id-tokens [auth-code]
   (let [oauth-config (get-oauth-config)
         client (OAuth2PlatformClient. oauth-config)
         bearer-token-response (.retrieveBearerTokens client auth-code (get-login-redirect-url))]
-    (.getIdToken bearer-token-response)))
+    {:id-token (.getIdToken bearer-token-response)
+     :refresh-token (.getRefreshToken bearer-token-response)
+     :access-token (.getAccessToken bearer-token-response)}))
 
 (defn get-authorization-url []
   (let [oauth-config (get-oauth-config)
         csrf (.generateCSRFToken oauth-config)
         scopes (doto (ArrayList.) (.add Scope/Accounting))]
     (.prepareUrl oauth-config scopes (get-connect-redirect-url) csrf)))
-    ;(.prepareUrl oauth-config scopes "http://localhost:3000/" csrf)))
 
 (defn get-tokens [auth-code]
   (let [oauth-config (get-oauth-config)
         client (OAuth2PlatformClient. oauth-config)
         bearer-token-response (.retrieveBearerTokens client auth-code (get-connect-redirect-url))]
-        ;bearer-token-response (.retrieveBearerTokens client auth-code "http://localhost:3000/")]
     {:access-token (.getAccessToken bearer-token-response)
      :access-token-expiration (.getExpiresIn bearer-token-response)
      :refresh-token (.getRefreshToken bearer-token-response)
@@ -73,6 +73,16 @@
         client (OAuth2PlatformClient. oauth-config)
         bearer-token-response (.retrieveBearerTokens client auth-code (get-connect-redirect-url))]
     (.getAccessToken bearer-token-response)))
+
+(defn validate-id-token [id-token]
+  (let [oauth-config (get-oauth-config)
+        client (OAuth2PlatformClient. oauth-config)]
+    (.validateIDToken client id-token)))
+
+(defn get-user-id [access-token]
+  (let [oauth-config (get-oauth-config)
+        client (OAuth2PlatformClient. oauth-config)]
+    (.getSub (.getUserInfo client access-token))))
 
 (def ticket-utils-date-format "yyyy-MM-dd")
 

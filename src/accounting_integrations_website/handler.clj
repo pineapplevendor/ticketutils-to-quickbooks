@@ -13,29 +13,19 @@
   (:gen-class))
 
 (defroutes app-routes
-  (GET "/" request (println request) (views/home (:session request)))
+  (GET "/" request (views/home (:session request)))
   (GET "/login" [] (redirect (quickbooks/get-login-url)))
-  (GET "/logged-in" [realmId code :as r]
-       (let [login-info (quickbooks/get-id-token code)
-             session (assoc (:session r) :user-id login-info)]
-         {:status 200
-          :headers {"Content-Type" "text/html"}
-          :cookies {"hey" {:value "chavis"}}
-          :session session
-          :body (views/logged-in session)}))
+  (GET "/logged-in" [code :as r] (sessions/get-logged-in-response (:session r) code))
   (GET "/connect-to-quickbooks" [] (redirect (quickbooks/get-authorization-url)))
-  (GET "/connected-to-quickbooks" [realmId code :as r] (views/connected-to-quickbooks (:session r) code realmId))
-  (GET "/privacy" request  (views/privacy))
+  (GET "/connected-to-quickbooks" [realmId code :as r] (sessions/get-connected-response (:session r) code realmId))
+  (GET "/privacy" [] (views/privacy))
   (GET "/export-auth" [] (redirect (quickbooks/get-authorization-url)))
   (GET "/export-data" [realmId code] (views/export-data-page realmId code))
   (POST "/export-data" {form-params :params} (views/export-data-results-page form-params))
   (route/not-found "Not Found"))
 
-(def config (-> site-defaults
-               (assoc-in [:session :store] (cookie-store {:key "abcdefghijklmnop"}))
-               (assoc-in [:session :flash] false)
-               (assoc-in [:session :cookie-attrs] {:http-only false})))
-(println "config" config)
+;;set this to lax so the session is still there when redirected back from quickbooks oauth
+(def config (assoc-in site-defaults [:session :cookie-attrs] {:same-site :lax}))
 
 (def app (wrap-defaults app-routes config))
 

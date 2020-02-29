@@ -1,5 +1,6 @@
 (ns accounting-integrations-website.session-controller
   (:require [environ.core :refer [env]]
+            [accounting-integrations-website.times :as times]
             [accounting-integrations-website.quickbooks :as quickbooks]
             [taoensso.faraday :as far]))
 
@@ -11,24 +12,44 @@
    :secret-key (env :aws-secret-access-key)
    :endpoint (env :dynamo-endpoint)})
 
-(defn get-current-time-in-seconds []
-  (/ (.getTime (java.util.Date.)) 1000))
-
 (defn get-expiration-date-in-seconds [seconds-to-expiration]
   ;;subtract 60 seconds for a minute of padding
-  (let [current-time (get-current-time-in-seconds)
+  (let [current-time (times/get-current-time-in-seconds)
         padding 60]
-    (- (+ current-time seconds-to-expiration) padding)))
+    (int (Math/floor (- (+ current-time seconds-to-expiration) 
+                        padding)))))
 
-(defn set-tokens [user-id auth-code realm-id]
+(defn get-tokens-with-expirations [tokens]
+  (-> tokens
+      (update-in [:access-token-expiration] get-expiration-date-in-seconds)
+      (update-in [:refresh-token-expiration] get-expiration-date-in-seconds)))
+
+(defn set-tokens [access-token auth-code realm-id]
   (far/put-item (get-dynamo-options)
                 (get-users-table)
-                (merge (quickbooks/get-tokens auth-code) 
-                       {:user-id user-id :realm-id realm-id})))
+                (merge (get-tokens-with-expirations (quickbooks/get-tokens auth-code))
+                       {:user-id (quickbooks/get-user-id access-token)
+                        :realm-id realm-id})))
+
+(defn get-connected-response [session auth-code realm-id]
+  (set-tokens (:access-token session) auth-code realm-id)
+  {:status 302
+   :headers {"Location" "/"}})
+
+(defn get-tokens-for-session [auth-code]
+  (let [open-id-tokens (quickbooks/get-open-id-tokens auth-code)]
+    (cond (quickbooks/validate-id-token (:id-token open-id-tokens))
+          open-id-tokens)))
+
+(defn get-logged-in-response [session auth-code]
+  {:status 302
+   :headers {"Location" "/"}
+   :session (merge session (get-tokens-for-session auth-code))})
+
 
 (defn get-validated-token [item token-key expiration-key]
   (cond (and (token-key item)
-             (< (get-current-time-in-seconds) (expiration-key item)))
+             (< (times/get-current-time-in-seconds) (expiration-key item)))
         (token-key item)))
 
 (defn get-valid-tokens [item]
@@ -42,7 +63,6 @@
                  [:access-token :refresh-token :realm-id])))
 
 (defn get-user-state [session]
-  (merge (select-keys session [:user-id])
-         (get-tokens (:user-id session))))
-
+  (let [user-id (quickbooks/get-user-id (:access-token session))]
+    (assoc (get-tokens user-id) :user-id user-id)))
 
