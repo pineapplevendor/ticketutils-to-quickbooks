@@ -84,11 +84,6 @@
         client (OAuth2PlatformClient. oauth-config)]
     (.getSub (.getUserInfo client access-token))))
 
-(def ticket-utils-date-format "yyyy-MM-dd")
-
-(defn format-date [date]
-  (.format (java.text.SimpleDateFormat. ticket-utils-date-format) date))
-
 (defn create-entity [data-service entity]
   (.add data-service entity))
 

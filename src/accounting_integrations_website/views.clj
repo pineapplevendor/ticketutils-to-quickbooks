@@ -1,6 +1,7 @@
 (ns accounting-integrations-website.views
   (:require [hiccup.page :as page]
             [accounting-integrations-website.quickbooks :as quickbooks]
+            [accounting-integrations-website.times :as times]
             [accounting-integrations-website.export-controller :as export-controller]
             [accounting-integrations-website.session-controller :as session-controller]
             [accounting-integrations-website.input-form :as input-form]
@@ -50,9 +51,6 @@
     "invoices"
     "purchase orders"))
 
-(defn format-date [date]
-  (.format (java.text.SimpleDateFormat. "MM/dd/yyyy") date))
-
 (defn export-data-results-page [unvalidated-form]
   (let [validated (input-form/get-validated-form unvalidated-form)]
     (if (:error-message validated)
@@ -76,8 +74,8 @@
           (:realm-id validated)
           (:access-token validated)))
         (page/html5
-          [:h1 "Exported your data from " (format-date (:start-date validated))
-           " to " (format-date (:end-date validated))]
+          [:h1 "Exported your data from " (times/format-view-date (:start-date validated))
+           " to " (times/format-view-date (:end-date validated))]
           [:h3 "Created " (:created synced) " records"]
           [:h3 "Updated " (:updated synced) " records"]
           [:h3 (:existing synced) " records already existed"]

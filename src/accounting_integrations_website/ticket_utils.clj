@@ -3,6 +3,7 @@
             [clojure.data.json :as json]
             [buddy.core.mac :as mac]
             [clj-http.client :as client]
+            [accounting-integrations-website.times :as times]
             [accounting-integrations-website.purchase-orders :as purchase-orders]
             [accounting-integrations-website.invoices :as invoices])
   (:import (java.util Base64)))
@@ -30,28 +31,20 @@
                {:body (json/write-str body)
                 :headers (get-ticket-utils-headers secret token path)}))
 
-(def ticket-utils-date-format "yyyy-MM-dd'T'HH:mm")
-
-(defn format-date [date]
-  (.format (java.text.SimpleDateFormat. ticket-utils-date-format) date))
-
-(defn parse-date [formatted-date]
-  (.parse (java.text.SimpleDateFormat. ticket-utils-date-format) formatted-date))
-
 (defn get-response-body [http-response]
   (json/read-str (:body http-response) :key-fn keyword))
 
 (defn get-invoices-request-body [start-date end-date page-size current-page]
-  {:InvoiceDate {:FromDate (format-date start-date)
-                 :ToDate (format-date end-date)
+  {:InvoiceDate {:FromDate (times/format-ticket-utils-date start-date)
+                 :ToDate (times/format-ticket-utils-date end-date)
                  :FilterByTime true}
    :IncludeItems false
    :Page current-page
    :ItemsPerPage page-size})
 
 (defn get-purchase-orders-request-body [start-date end-date page-size current-page]
-  {:PurchaseOrderDate {:FromDate (format-date start-date)
-                       :ToDate (format-date end-date)
+  {:PurchaseOrderDate {:FromDate (times/format-ticket-utils-date start-date)
+                       :ToDate (times/format-ticket-utils-date end-date)
                        :FilterByTime true}
    :Page current-page
    :ItemsPerPage page-size})
@@ -60,7 +53,7 @@
                                   {:keys [Amount]} :GrandTotal}]
   (invoices/map->Invoice {:customer ZoneCode 
                           :number InvoiceNumber 
-                          :date (parse-date InvoiceDate) 
+                          :date (times/parse-ticket-utils-date InvoiceDate) 
                           :amount Amount
                           :payment-complete? (= PaymentStatus 3)}))
 
@@ -76,7 +69,7 @@
                                                  (get-customer-name secret token CustomerId)
                                                  Company)
                                        :number PONumber
-                                       :date (parse-date PurchaseOrderDate)
+                                       :date (times/parse-ticket-utils-date PurchaseOrderDate)
                                        :amount Amount
                                        :payment-complete? (= PaymentStatus 3)}))
 
