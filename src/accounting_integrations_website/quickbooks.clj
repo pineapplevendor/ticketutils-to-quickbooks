@@ -59,14 +59,23 @@
         scopes (doto (ArrayList.) (.add Scope/Accounting))]
     (.prepareUrl oauth-config scopes (get-connect-redirect-url) csrf)))
 
+(defn get-tokens-from-bearer-token [bearer-token-response]
+  {:access-token (.getAccessToken bearer-token-response)
+   :access-token-expiration (.getExpiresIn bearer-token-response)
+   :refresh-token (.getRefreshToken bearer-token-response)
+   :refresh-token-expiration (.getXRefreshTokenExpiresIn bearer-token-response)})
+
 (defn get-tokens [auth-code]
   (let [oauth-config (get-oauth-config)
         client (OAuth2PlatformClient. oauth-config)
         bearer-token-response (.retrieveBearerTokens client auth-code (get-connect-redirect-url))]
-    {:access-token (.getAccessToken bearer-token-response)
-     :access-token-expiration (.getExpiresIn bearer-token-response)
-     :refresh-token (.getRefreshToken bearer-token-response)
-     :refresh-token-expiration (.getXRefreshTokenExpiresIn bearer-token-response)}))
+    (get-tokens-from-bearer-token bearer-token-response)))
+
+(defn refresh-tokens [refresh-token]
+  (let [oauth-config (get-oauth-config)
+        client (OAuth2PlatformClient. oauth-config)
+        bearer-token-response (.refreshToken client refresh-token)]
+    (get-tokens-from-bearer-token bearer-token-response)))
 
 (defn get-access-token [auth-code]
   (let [oauth-config (get-oauth-config)

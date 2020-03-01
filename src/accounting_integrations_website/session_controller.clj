@@ -46,16 +46,25 @@
    :headers {"Location" "/"}
    :session (merge session (get-tokens-for-session auth-code))})
 
-
 (defn get-validated-token [item token-key expiration-key]
   (cond (and (token-key item)
              (< (times/get-current-time-in-seconds) (expiration-key item)))
         (token-key item)))
 
-(defn get-valid-tokens [item]
-  (assoc item
-         :access-token (get-validated-token item :access-token :access-token-expiration)
-         :refresh-token (get-validated-token item :refresh-token :refresh-token-expiration)))
+(defn get-valid-tokens [dynamo-item]
+  (assoc dynamo-item
+         :access-token (get-validated-token dynamo-item :access-token :access-token-expiration)
+         :refresh-token (get-validated-token dynamo-item :refresh-token :refresh-token-expiration)))
+
+(defn refresh-tokens-if-necessary [current-tokens]
+  (if (and (:refresh-token current-tokens) (not (:access-token current-tokens)))
+    (let [refreshed-tokens (quickbooks/refresh-tokens (:refresh-token current-tokens))]
+      (far/put-item (get-dynamo-options)
+                    (get-users-table)
+                    (merge (get-tokens-with-expirations refreshed-tokens)
+                           {:user-id (:user-id current-tokens) 
+                            :realm-id (:realm-id current-tokens)})))
+    current-tokens))
 
 (defn get-tokens [user-id]
   (cond user-id
@@ -63,6 +72,13 @@
                  [:access-token :refresh-token :realm-id])))
 
 (defn get-user-state [session]
-  (let [user-id (quickbooks/get-user-id (:access-token session))]
-    (assoc (get-tokens user-id) :user-id user-id)))
+  (if-let [access-token (:access-token session)]
+    (if-let [user-id (quickbooks/get-user-id access-token)]
+      (refresh-tokens-if-necessary (assoc (get-tokens user-id) :user-id user-id)))))
+
+(defn is-logged-in? [user-state]
+  (:user-id user-state))
+
+(defn is-connected-to-quickbooks? [user-state]
+  (and (:access-token user-state) (:realm-id user-state)))
 

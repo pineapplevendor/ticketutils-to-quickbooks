@@ -7,7 +7,7 @@
             [accounting-integrations-website.input-form :as input-form]
             [ring.util.anti-forgery :as anti-forgery]))
 
-(defn render-export-data-form [item start-date end-date ticket-utils-token ticket-utils-secret realm-id access-token]
+(defn render-export-data-form [item start-date end-date ticket-utils-token ticket-utils-secret]
   [:div {:id "export-data-form"}
    [:h1 "Export Accounting Data to QuickBooks"]
    [:form {:action "/export-data" :method "POST"}
@@ -42,8 +42,6 @@
       [:label {:for "ticket-utils-secret"} "TicketUtils API Secret "]
       [:input {:type "text", :id "ticket-utils-secret", :name "ticket-utils-secret", :size "15"
                :value (if ticket-utils-secret ticket-utils-secret "")}]]]
-    [:input {:type "hidden" :id "realm-id" :name "realm-id" :value realm-id}]
-    [:input {:type "hidden" :id "access-token" :name "access-token" :value access-token}]
     [:input {:type "submit" :value "Export Data"}]]])
 
 (defn format-item [item]
@@ -51,60 +49,63 @@
     "invoices"
     "purchase orders"))
 
-(defn export-data-results-page [unvalidated-form]
-  (let [validated (input-form/get-validated-form unvalidated-form)]
-    (if (:error-message validated)
-      (page/html5
-        [:h3 "Error: " (:error-message validated)]
-        (render-export-data-form
-          (:item unvalidated-form)
-          (:start-date unvalidated-form)
-          (:end-date unvalidated-form)
-          (:ticket-utils-token unvalidated-form)
-          (:ticket-utils-secret unvalidated-form)
-          (:realm-id unvalidated-form)
-          (:access-token unvalidated-form)))
-      (do
-        (def synced (export-controller/sync-data 
-          (:item validated)
-          (:start-date validated)
-          (:end-date validated)
-          (:ticket-utils-token validated)
-          (:ticket-utils-secret validated)
-          (:realm-id validated)
-          (:access-token validated)))
+(defn export-data-results-page [session unvalidated-form]
+  (let [user-state (session-controller/get-user-state session)
+        validated (input-form/get-validated-form unvalidated-form)]
+    (if (session-controller/is-connected-to-quickbooks? user-state)
+      (if (:error-message validated)
         (page/html5
-          [:h1 "Exported your data from " (times/format-view-date (:start-date validated))
-           " to " (times/format-view-date (:end-date validated))]
-          [:h3 "Created " (:created synced) " records"]
-          [:h3 "Updated " (:updated synced) " records"]
-          [:h3 (:existing synced) " records already existed"]
-          [:p "Click "
-           [:a {:href "/"} "here"]
-           " to return home and export more data"])))))
+          [:h3 "Error: " (:error-message validated)]
+          (render-export-data-form
+            (:item unvalidated-form)
+            (:start-date unvalidated-form)
+            (:end-date unvalidated-form)
+            (:ticket-utils-token unvalidated-form)
+            (:ticket-utils-secret unvalidated-form)))
+        (do
+          (def synced (export-controller/sync-data 
+            (:item validated)
+            (:start-date validated)
+            (:end-date validated)
+            (:ticket-utils-token validated)
+            (:ticket-utils-secret validated)
+            (:realm-id user-state)
+            (:access-token user-state)))
+          (page/html5
+            [:h1 "Exported your data from " (times/format-view-date (:start-date validated))
+             " to " (times/format-view-date (:end-date validated))]
+            [:h3 "Created " (:created synced) " records"]
+            [:h3 "Updated " (:updated synced) " records"]
+            [:h3 (:existing synced) " records already existed"]
+            [:p "Click "
+             [:a {:href "/"} "here"]
+             " to return home and export more data"])))
+      (page/html5 [:p "Please return "[:a {:href "/"} "home"] " to connect to QuickBooks"]))))
 
-(defn export-data-page [realm-id code]
-  (page/html5
-    (render-export-data-form nil nil nil nil nil realm-id (quickbooks/get-access-token code))))
-
-(defn render-logged-in-home [session]
+(defn export-data-page [session]
   (let [user-state (session-controller/get-user-state session)]
-    (if (or (:access-token user-state) (:refresh-token user-state))
-      [:p "Click " 
-        [:a {:href "/export-auth"} "here"]
-        " to export your data to QuickBooks"]
-      [:p "Click " 
-        [:a {:href "/connect-to-quickbooks"} "here"]
-        " to grant us permission to export your data to QuickBooks"])))
+    (if (session-controller/is-connected-to-quickbooks? user-state)
+      (page/html5 (render-export-data-form nil nil nil nil nil))
+      (page/html5 [:p "Please return "[:a {:href "/"} "home"] " to connect to QuickBooks"]))))
+
+(defn render-logged-in-home [user-state]
+  (if (session-controller/is-connected-to-quickbooks? user-state)
+    [:p "Click " 
+      [:a {:href "/export-data"} "here"]
+      " to export your data to QuickBooks"]
+    [:p "Click " 
+      [:a {:href "/connect-to-quickbooks"} "here"]
+      " to grant us permission to export your data to QuickBooks"]))
 
 (defn home [session]
-  (page/html5
-    [:h1 "Welcome to Can Opener Integrations"]
-    [:h3 "This is a tool to export purchase orders and invoices from TicketUtils to QuickBooks"]
-    (if (:access-token session)
-      (render-logged-in-home session)
-      [:p "Please log in "
-        [:a {:href "/login"} "here"]])))
+  (let [user-state (session-controller/get-user-state session)]
+    (page/html5
+      [:h1 "Welcome to Can Opener Integrations"]
+      [:h3 "This is a tool to export purchase orders and invoices from TicketUtils to QuickBooks"]
+      (if (session-controller/is-logged-in? user-state)
+        (render-logged-in-home user-state)
+        [:p "Please log in "
+          [:a {:href "/login"} "here"]]))))
 
 (defn privacy []
   (page/html5

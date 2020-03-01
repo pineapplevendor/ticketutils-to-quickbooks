@@ -18,10 +18,9 @@
   (GET "/logged-in" [code :as r] (sessions/get-logged-in-response (:session r) code))
   (GET "/connect-to-quickbooks" [] (redirect (quickbooks/get-authorization-url)))
   (GET "/connected-to-quickbooks" [realmId code :as r] (sessions/get-connected-response (:session r) code realmId))
+  (GET "/export-data" {session :session} (views/export-data-page session))
+  (POST "/export-data" {session :session form-params :params} (views/export-data-results-page session form-params))
   (GET "/privacy" [] (views/privacy))
-  (GET "/export-auth" [] (redirect (quickbooks/get-authorization-url)))
-  (GET "/export-data" [realmId code] (views/export-data-page realmId code))
-  (POST "/export-data" {form-params :params} (views/export-data-results-page form-params))
   (route/not-found "Not Found"))
 
 ;;set this to lax so the session is still there when redirected back from quickbooks oauth
