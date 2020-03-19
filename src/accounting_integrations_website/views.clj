@@ -7,6 +7,11 @@
             [accounting-integrations-website.input-form :as input-form]
             [ring.util.anti-forgery :as anti-forgery]))
 
+(defn style-page [& elements]
+  (page/html5
+    (page/include-css "/styles.css")
+    elements))
+
 (defn render-export-data-form [item start-date end-date ticket-utils-token ticket-utils-secret]
   [:div {:id "export-data-form"}
    [:h1 "Export Accounting Data to QuickBooks"]
@@ -54,7 +59,7 @@
         validated (input-form/get-validated-form unvalidated-form)]
     (if (session-controller/is-connected-to-quickbooks? user-state)
       (if (:error-message validated)
-        (page/html5
+        (style-page
           [:h3 "Error: " (:error-message validated)]
           (render-export-data-form
             (:item unvalidated-form)
@@ -71,7 +76,7 @@
             (:ticket-utils-secret validated)
             (:realm-id user-state)
             (:access-token user-state)))
-          (page/html5
+          (style-page
             [:h1 "Exported your data from " (times/format-view-date (:start-date validated))
              " to " (times/format-view-date (:end-date validated))]
             [:h3 "Created " (:created synced) " records"]
@@ -80,13 +85,16 @@
             [:p "Click "
              [:a {:href "/"} "here"]
              " to return home and export more data"])))
-      (page/html5 [:p "Please return "[:a {:href "/"} "home"] " to connect to QuickBooks"]))))
+      (style-page
+        [:p "Please return "[:a {:href "/"} "home"] " to connect to QuickBooks"]))))
 
 (defn export-data-page [session]
   (let [user-state (session-controller/get-user-state session)]
     (if (session-controller/is-connected-to-quickbooks? user-state)
-      (page/html5 (render-export-data-form nil nil nil nil nil))
-      (page/html5 [:p "Please return "[:a {:href "/"} "home"] " to connect to QuickBooks"]))))
+      (style-page
+        (render-export-data-form nil nil nil nil nil))
+      (style-page
+        [:p "Please return "[:a {:href "/"} "home"] " to connect to QuickBooks"]))))
 
 (defn render-logged-in-home [user-state]
   (if (session-controller/is-connected-to-quickbooks? user-state)
@@ -99,7 +107,7 @@
 
 (defn home [session]
   (let [user-state (session-controller/get-user-state session)]
-    (page/html5
+    (style-page
       [:h1 "Welcome to Can Opener Integrations"]
       [:h3 "This is a tool to export purchase orders and invoices from TicketUtils to QuickBooks"]
       (if (session-controller/is-logged-in? user-state)
@@ -108,7 +116,7 @@
           [:a {:href "/login"} "here"]]))))
 
 (defn privacy []
-  (page/html5
+  (style-page
     [:h1 "License"]
     [:p
      "This is free and unencumbered software released into the public domain.
