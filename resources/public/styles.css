@@ -2,3 +2,28 @@ body {
   background-color: #EAD1EA;
   color: #000;
 }
+
+.hover-image {
+  display: none;
+}
+
+.quickbooks-image {
+  height: 40px;
+}
+
+.hover-image {
+  display: block;
+}
+
+.hover-image .hoverover-image {
+  display: none;
+}
+
+.hover-image:hover .hoverover-image {
+  display: inline;
+}
+
+.hover-image:hover .default-image {
+  display: none;
+}
+

@@ -1,5 +1,6 @@
 (ns accounting-integrations-website.views
   (:require [hiccup.page :as page]
+            [hiccup.util :as util]
             [accounting-integrations-website.quickbooks :as quickbooks]
             [accounting-integrations-website.times :as times]
             [accounting-integrations-website.export-controller :as export-controller]
@@ -101,9 +102,14 @@
     [:p "Click " 
       [:a {:href "/export-data"} "here"]
       " to export your data to QuickBooks"]
-    [:p "Click " 
-      [:a {:href "/connect-to-quickbooks"} "here"]
-      " to grant us permission to export your data to QuickBooks"]))
+    [:p "Please use the button below to grant us permission to export your data to QuickBooks" 
+      [:a {:href "/connect-to-quickbooks"} [:div {:id "connect-to-quickbooks" :class "hover-image"}
+                                            [:img {:id "connect-to-quickbooks-default" 
+                                                   :class "default-image quickbooks-image" 
+                                                   :src (util/to-uri "/images/connect-to-quickbooks-default.png")}]
+                                            [:img {:id "connect-to-quickbooks-hover" 
+                                                   :class "hoverover-image quickbooks-image"
+                                                   :src (util/to-uri "/images/connect-to-quickbooks-hover.png")}]]]]))
 
 (defn home [session]
   (let [user-state (session-controller/get-user-state session)]
@@ -112,8 +118,12 @@
       [:h3 "This is a tool to export purchase orders and invoices from TicketUtils to QuickBooks"]
       (if (session-controller/is-logged-in? user-state)
         (render-logged-in-home user-state)
-        [:p "Please log in "
-          [:a {:href "/login"} "here"]]))))
+        [:p "Please log in through Intuit QuickBooks using the button below"
+          [:a {:href "/login"} [:div {:id "log-in-to-quickbooks" :class "hover-image"}
+                                [:img {:id "log-in-to-quickbooks-default" :class "default-image quickbooks-image"
+                                       :src (util/to-uri "/images/sign-in-to-quickbooks-default.png")}]
+                                [:img {:id "log-in-to-quickbooks-hover" :class "hoverover-image quickbooks-image"
+                                       :src (util/to-uri "/images/sign-in-to-quickbooks-hover.png")}]]]]))))
 
 (defn privacy []
   (style-page
