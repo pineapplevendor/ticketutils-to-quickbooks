@@ -55,8 +55,8 @@
     "invoices"
     "purchase orders"))
 
-(defn export-data-results-page [session unvalidated-form]
-  (let [user-state (session-controller/get-user-state session)
+(defn export-data-results-page [request unvalidated-form]
+  (let [user-state (session-controller/get-user-state request)
         validated (input-form/get-validated-form unvalidated-form)]
     (if (session-controller/is-connected-to-quickbooks? user-state)
       (if (:error-message validated)
@@ -89,8 +89,8 @@
       (style-page
         [:p "Please return "[:a {:href "/"} "home"] " to connect to QuickBooks"]))))
 
-(defn export-data-page [session]
-  (let [user-state (session-controller/get-user-state session)]
+(defn export-data-page [request]
+  (let [user-state (session-controller/get-user-state request)]
     (if (session-controller/is-connected-to-quickbooks? user-state)
       (style-page
         (render-export-data-form nil nil nil nil nil))
@@ -111,8 +111,8 @@
                                                    :class "hoverover-image quickbooks-image"
                                                    :src (util/to-uri "/images/connect-to-quickbooks-hover.png")}]]]]))
 
-(defn home [session]
-  (let [user-state (session-controller/get-user-state session)]
+(defn home [request]
+  (let [user-state (session-controller/get-user-state request)]
     (style-page
       [:h1 "Welcome to Can Opener Integrations"]
       [:h3 "This is a tool to export purchase orders and invoices from TicketUtils to QuickBooks"]

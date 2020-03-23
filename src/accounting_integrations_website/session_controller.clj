@@ -56,25 +56,24 @@
          :access-token (get-validated-token dynamo-item :access-token :access-token-expiration)
          :refresh-token (get-validated-token dynamo-item :refresh-token :refresh-token-expiration)))
 
-(defn refresh-tokens-if-necessary [current-tokens]
-  (if (and (:refresh-token current-tokens) (not (:access-token current-tokens)))
-    (let [refreshed-tokens (quickbooks/refresh-tokens (:refresh-token current-tokens))]
-      (far/put-item (get-dynamo-options)
-                    (get-users-table)
-                    (merge (get-tokens-with-expirations refreshed-tokens)
-                           {:user-id (:user-id current-tokens) 
-                            :realm-id (:realm-id current-tokens)})))
-    current-tokens))
-
 (defn get-tokens [user-id]
   (cond user-id
     (select-keys (get-valid-tokens (far/get-item (get-dynamo-options) (get-users-table) {:user-id user-id}))
                  [:access-token :refresh-token :realm-id])))
 
-(defn get-user-state [session]
-  (if-let [access-token (:access-token session)]
-    (if-let [user-id (quickbooks/get-user-id access-token)]
-      (refresh-tokens-if-necessary (assoc (get-tokens user-id) :user-id user-id)))))
+(defn get-refreshed-tokens! [user-id]
+  (let [current-tokens (assoc (get-tokens user-id) :user-id user-id)]
+    (if (and (:refresh-token current-tokens) (not (:access-token current-tokens)))
+      (let [refreshed-tokens (quickbooks/refresh-tokens (:refresh-token current-tokens))]
+        (far/put-item (get-dynamo-options)
+                      (get-users-table)
+                      (merge (get-tokens-with-expirations refreshed-tokens)
+                             {:user-id (:user-id current-tokens) 
+                              :realm-id (:realm-id current-tokens)})))
+      current-tokens)))
+
+(defn get-user-state [request]
+  (:user-state request))
 
 (defn is-logged-in? [user-state]
   (:user-id user-state))

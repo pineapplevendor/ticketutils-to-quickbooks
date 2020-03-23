@@ -91,7 +91,11 @@
 (defn get-user-id [access-token]
   (let [oauth-config (get-oauth-config)
         client (OAuth2PlatformClient. oauth-config)]
-    (.getSub (.getUserInfo client access-token))))
+    (try
+      (.getSub (.getUserInfo client access-token))
+      (catch Exception e 
+        (println "Caught exception getting user-id with access-token " (.getMessage e))
+        nil))))
 
 (defn create-entity [data-service entity]
   (.add data-service entity))
