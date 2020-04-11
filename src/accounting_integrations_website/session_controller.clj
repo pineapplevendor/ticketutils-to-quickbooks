@@ -81,3 +81,8 @@
 (defn is-connected-to-quickbooks? [user-state]
   (and (:access-token user-state) (:realm-id user-state)))
 
+(defn disconnect [request]
+  (let [user-state (get-user-state request)]
+    (far/delete-item (get-dynamo-options) (get-users-table) (select-keys user-state [:user-id]))
+    (quickbooks/disconnect (:refresh-token user-state))))
+

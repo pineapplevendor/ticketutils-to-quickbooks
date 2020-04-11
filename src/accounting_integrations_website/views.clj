@@ -99,9 +99,12 @@
 
 (defn render-logged-in-home [user-state]
   (if (session-controller/is-connected-to-quickbooks? user-state)
-    [:p "Click " 
-      [:a {:href "/export-data"} "here"]
-      " to export your data to QuickBooks"]
+    [:div
+     [:p "Click " [:a {:href "/export-data"} "here"] " to export your data to QuickBooks"]
+     [:p "Or click the button below to disconnect from QuickBooks"
+      [:form {:action "/disconnect" :method "POST"}
+       (anti-forgery/anti-forgery-field)
+       [:input {:type "submit" :value "Disconnect"}]]]]
     [:p "Please use the button below to grant us permission to export your data to QuickBooks" 
       [:a {:href "/connect-to-quickbooks"} [:div {:id "connect-to-quickbooks" :class "hover-image"}
                                             [:img {:id "connect-to-quickbooks-default" 
@@ -110,6 +113,12 @@
                                             [:img {:id "connect-to-quickbooks-hover" 
                                                    :class "hoverover-image quickbooks-image"
                                                    :src (util/to-uri "/images/connect-to-quickbooks-hover.png")}]]]]))
+
+(defn disconnected-results-page [request]
+  (session-controller/disconnect request)
+  (style-page
+    [:p "You have disconnected Can Opener Integrations from QuickBooks"]
+    [:p "You can return "[:a {:href "/"} "home"] " to reconnect to QuickBooks"]))
 
 (defn home [request]
   (let [user-state (session-controller/get-user-state request)]

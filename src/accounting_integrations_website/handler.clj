@@ -19,6 +19,7 @@
   (GET "/logged-in" [code :as request] (sessions/get-logged-in-response (:session request) code))
   (GET "/connect-to-quickbooks" [] (redirect (quickbooks/get-authorization-url)))
   (GET "/connected-to-quickbooks" [realmId code :as r] (sessions/get-connected-response (:session r) code realmId))
+  (POST "/disconnect" request (views/disconnected-results-page request))
   (GET "/export-data" request (views/export-data-page request))
   (POST "/export-data" request (views/export-data-results-page request (:params request)))
   (GET "/privacy" [] (views/privacy))

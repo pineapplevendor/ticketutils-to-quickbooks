@@ -97,6 +97,11 @@
         (println "Caught exception getting user-id with access-token " (.getMessage e))
         nil))))
 
+(defn disconnect [refresh-token]
+  (let [oauth-config (get-oauth-config)
+        client (OAuth2PlatformClient. oauth-config)]
+    (.revokeToken client refresh-token)))
+
 (defn create-entity [data-service entity]
   (.add data-service entity))
 
