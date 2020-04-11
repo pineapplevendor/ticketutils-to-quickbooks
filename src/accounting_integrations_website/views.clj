@@ -42,11 +42,11 @@
       " under \"API Settings\""]
      [:div
       [:label {:for "ticket-utils-token"} "TicketUtils API Token "]
-      [:input {:type "text", :id "ticket-utils-token", :name "ticket-utils-token", :size "15"
+      [:input {:type "password", :id "ticket-utils-token", :name "ticket-utils-token", :size "15"
                :value (if ticket-utils-token ticket-utils-token "")}]]
      [:div 
       [:label {:for "ticket-utils-secret"} "TicketUtils API Secret "]
-      [:input {:type "text", :id "ticket-utils-secret", :name "ticket-utils-secret", :size "15"
+      [:input {:type "password", :id "ticket-utils-secret", :name "ticket-utils-secret", :size "15"
                :value (if ticket-utils-secret ticket-utils-secret "")}]]]
     [:input {:type "submit" :value "Export Data"}]]])
 
