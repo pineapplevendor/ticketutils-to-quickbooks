@@ -162,7 +162,7 @@
       OTHER DEALINGS IN THE SOFTWARE.
 
       For more information, please refer to https://unlicense.org"]
-    [:h1 "Privacy"]
+    [:h1 "Privacy and Integration with QuickBooks"]
     [:p 
      "The Can Opener Integration desktop app retrieves retrieves your purchase orders and invoices
       from TicketUtils. It uses that data to create purchase orders and invoices in QuickBooks."]))
