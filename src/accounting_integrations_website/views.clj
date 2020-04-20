@@ -1,6 +1,7 @@
 (ns accounting-integrations-website.views
   (:require [hiccup.page :as page]
             [hiccup.util :as util]
+            [hiccup.form :as h-form]
             [accounting-integrations-website.quickbooks :as quickbooks]
             [accounting-integrations-website.times :as times]
             [accounting-integrations-website.export-controller :as export-controller]
@@ -13,7 +14,14 @@
     (page/include-css "/styles.css")
     elements))
 
-(defn render-export-data-form [item start-date end-date ticket-utils-token ticket-utils-secret]
+(defn render-accounts-payable-selector [access-token realm-id]
+  (let [accounts-payable-accounts (export-controller/get-accounts-payable-accounts access-token realm-id)]
+    (h-form/drop-down {} 
+                      "accounts-payable-account" 
+                      (map (fn [ap] [(:name ap) (:id ap)]) accounts-payable-accounts)
+                      (:id (first accounts-payable-accounts)))))
+
+(defn render-export-data-form [item start-date end-date ticket-utils-token ticket-utils-secret access-token realm-id]
   [:div {:id "export-data-form"}
    [:h1 "Export Accounting Data to QuickBooks"]
    [:form {:action "/export-data" :method "POST"}
@@ -27,6 +35,9 @@
       [:label {:for "purchase-orders"} "Purchase Orders "]
       [:input {:type "radio" :id "purchase-orders" :name "item" :value "purchase-orders" 
                :checked (= item "purchase-orders")}]]]
+    [:p
+     [:h3 "Which QuickBooks account would you like to use to track accounts payable?"]
+     [:div (render-accounts-payable-selector access-token realm-id)]]
     [:p 
      [:h3 "What date range would you like to export the data from?"]
      [:div
@@ -67,10 +78,13 @@
             (:start-date unvalidated-form)
             (:end-date unvalidated-form)
             (:ticket-utils-token unvalidated-form)
-            (:ticket-utils-secret unvalidated-form)))
+            (:ticket-utils-secret unvalidated-form)
+            (:access-token user-state)
+            (:realm-id user-state)))
         (do
           (def synced (export-controller/sync-data 
             (:item validated)
+            (:accounts-payable-account validated)
             (:start-date validated)
             (:end-date validated)
             (:ticket-utils-token validated)
@@ -93,7 +107,7 @@
   (let [user-state (session-controller/get-user-state request)]
     (if (session-controller/is-connected-to-quickbooks? user-state)
       (style-page
-        (render-export-data-form nil nil nil nil nil))
+        (render-export-data-form nil nil nil nil nil (:access-token user-state) (:realm-id user-state)))
       (style-page
         [:p "Please return "[:a {:href "/"} "home"] " to connect to QuickBooks"]))))
 

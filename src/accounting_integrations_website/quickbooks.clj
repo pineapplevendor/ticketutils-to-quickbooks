@@ -6,15 +6,13 @@
   (:import (java.util ArrayList)
            (com.intuit.ipp.data Item Account ItemTypeEnum ReferenceType Vendor Customer ReferenceType Line
                                 LineDetailTypeEnum SalesItemLineDetail Invoice PurchaseOrder
-                                ItemBasedExpenseLineDetail BillableStatusEnum PurchaseOrderStatusEnum)
+                                AccountBasedExpenseLineDetail BillableStatusEnum PurchaseOrderStatusEnum)
            (com.intuit.ipp.services DataService)
            (com.intuit.ipp.core ServiceType Context)
            (com.intuit.ipp.util Config)
            (com.intuit.ipp.security OAuth2Authorizer)
            (com.intuit.oauth2.client OAuth2PlatformClient)
            (com.intuit.oauth2.config Scope OAuth2Config OAuth2Config$OAuth2ConfigBuilder Environment)))
-
-(def tickets-item "TicketUtilsTickets")
 
 (defn get-env []
   (Environment/fromValue (env :quickbooks-env)))
@@ -122,18 +120,14 @@
     (.getId entity)
     nil))
 
-(defn get-tickets-item-id [data-service]
-  (let [query (str "select * from Item where Name='" tickets-item "'")]
-    (get-entity-id data-service query)))
+(defn get-accounts-payable-accounts-with-service [data-service]
+  (let [query (str "select * from Account where AccountType = 'Expense'")
+        accounts-payable-entities (get-entities data-service query)]
+    (map (fn [ap] {:id (.getId ap) :name (.getName ap)}) accounts-payable-entities)))
 
-(defn create-tickets-item [data-service]
-  (let [item (doto (Item.)
-               (.setTrackQtyOnHand false)
-               (.setName tickets-item)
-               (.setIncomeAccountRef (doto (ReferenceType.) (.setValue "81"))) ;;Inventory Asset Account
-               (.setExpenseAccountRef (doto (ReferenceType.) (.setValue "78"))) ;;Purchases Account
-               (.setType (ItemTypeEnum/SERVICE)))]
-    (create-entity data-service item)))
+(defn get-accounts-payable-accounts [access-token realm-id]
+  (let [data-service (quickbooks-client/get-data-service access-token realm-id)]
+    (get-accounts-payable-accounts-with-service data-service)))
 
 (defn get-vendor-name [vendor-name]
   (str vendor-name "-Vendor"))
@@ -161,23 +155,21 @@
   (let [query (str "select * from Invoice where DocNumber = '" doc-number "'")]
     (get-entity data-service query)))
 
-(defn get-invoice-line [customer-id tickets-item-id invoice]
+(defn get-invoice-line [customer-id invoice]
   (doto (Line.)
     (.setAmount (BigDecimal. (:amount invoice)))
     (.setDetailType (LineDetailTypeEnum/SALES_ITEM_LINE_DETAIL))
     (.setDescription (str "TicketUtils Invoice: " (:number invoice)))
-    (.setSalesItemLineDetail (doto (SalesItemLineDetail.)
-                               (.setItemRef (doto (ReferenceType.) (.setValue tickets-item-id)))))))
+    (.setSalesItemLineDetail (doto (SalesItemLineDetail.) (.setQty 1M)))))
 
 (defn create-invoice [data-service invoice]
   (let [customer-id (or (get-customer-id data-service (:customer invoice))
-                        (create-customer data-service (:customer invoice)))
-        tickets-item-id (get-tickets-item-id data-service)]
+                        (create-customer data-service (:customer invoice)))]
     (let [invoice (doto (Invoice.)
                     (.setDocNumber (str (:number invoice)))
                     (.setTxnDate (:date invoice))
                     (.setCustomerRef (doto (ReferenceType.) (.setValue customer-id)))
-                    (.setLine (doto (ArrayList.) (.add (get-invoice-line customer-id tickets-item-id invoice)))))]
+                    (.setLine (doto (ArrayList.) (.add (get-invoice-line customer-id invoice)))))]
       (create-entity data-service invoice))))
 
 (defn sync-invoice [data-service invoice]
@@ -209,44 +201,42 @@
   (and (:payment-complete? ticket-utils-po)
        (= PurchaseOrderStatusEnum/OPEN (.getPOStatus quickbooks-po))))
 
-(defn get-purchase-order-line [vendor-id tickets-item-id purchase-order]
+(defn get-purchase-order-line [vendor-id ap-account purchase-order]
   (doto (Line.)
     (.setDescription (str "TicketUtils Purchase Order: " (:number purchase-order)))
-    (.setDetailType (LineDetailTypeEnum/ITEM_BASED_EXPENSE_LINE_DETAIL))
+    (.setDetailType (LineDetailTypeEnum/ACCOUNT_BASED_EXPENSE_LINE_DETAIL))
     (.setAmount (BigDecimal. (:amount purchase-order)))
-    (.setItemBasedExpenseLineDetail (doto (ItemBasedExpenseLineDetail.)
-                                      (.setItemRef (doto (ReferenceType.) (.setValue tickets-item-id)))
-                                      (.setTaxCodeRef (doto (ReferenceType.) (.setValue "NON")))
-                                      (.setBillableStatus (BillableStatusEnum/NOT_BILLABLE))))))
+    (.setAccountBasedExpenseLineDetail (doto (AccountBasedExpenseLineDetail.)
+                                         (.setTaxCodeRef (doto (ReferenceType.) (.setValue "NON")))
+                                         (.setBillableStatus (BillableStatusEnum/NOT_BILLABLE))
+                                         (.setAccountRef (doto (ReferenceType.) (.setValue ap-account)))))))
 
-(defn create-purchase-order [data-service purchase-order]
+(defn create-purchase-order [data-service ap-account purchase-order]
   (let [vendor-id (or (get-vendor-id data-service (:vendor purchase-order))
-                      (create-vendor data-service (:vendor purchase-order)))
-        tickets-item-id (get-tickets-item-id data-service)]
+                      (create-vendor data-service (:vendor purchase-order)))]
     (let [purchase-order (doto (PurchaseOrder.)
                            (.setDocNumber (str (:number purchase-order)))
                            (.setTxnDate (:date purchase-order))
                            (.setTotalAmt (BigDecimal. (:amount purchase-order)))
                            (.setVendorRef (doto (ReferenceType.) (.setValue vendor-id)))
-                           (.setAPAccountRef (doto (ReferenceType.) (.setValue "33"))) ;;Accounts Payable (A/P)
                            (.setLine (doto (ArrayList.) 
-                                       (.add (get-purchase-order-line vendor-id tickets-item-id purchase-order)))))]
+                                       (.add (get-purchase-order-line vendor-id ap-account purchase-order)))))]
       (create-entity data-service purchase-order))))
 
-(defn sync-purchase-order [data-service purchase-order]
+(defn sync-purchase-order [data-service ap-account purchase-order]
   (let [current-purchase-order (get-purchase-order data-service (:number purchase-order))]
     (cond
       (not current-purchase-order) 
-      {:created (create-purchase-order data-service purchase-order)}
+      {:created (create-purchase-order data-service ap-account purchase-order)}
       (purchase-order-requires-update? current-purchase-order purchase-order) 
       {:updated (mark-po-as-paid data-service purchase-order)}
       :else
       {:existing current-purchase-order})))
 
-(defn sync-purchase-order-with-service [access-token realm-id purchase-order]
+(defn sync-purchase-order-with-service [access-token realm-id ap-account purchase-order]
   (let [data-service (quickbooks-client/get-data-service access-token realm-id)]
-    (sync-purchase-order data-service purchase-order)))
+    (sync-purchase-order data-service ap-account purchase-order)))
 
-(defn sync-purchase-orders [access-token realm-id purchase-orders]
-  (pmap #(sync-purchase-order-with-service access-token realm-id %) purchase-orders))
+(defn sync-purchase-orders [access-token realm-id accounts-payable-account purchase-orders]
+  (pmap #(sync-purchase-order-with-service access-token realm-id accounts-payable-account %) purchase-orders))
 

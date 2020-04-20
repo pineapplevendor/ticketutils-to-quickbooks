@@ -30,10 +30,18 @@
     secret
     "You must provide your TicketUtils API Secret to export data. Please follow the form's instructions to retrieve it."))
 
+(defn validate-accounts-payable-account [accounts-payable-account]
+  (validate-non-empty-string
+    "accounts-payable-account"
+    accounts-payable-account
+    "You must select a QuickBooks account to track accounts payable."))
+
 (defn get-validated-form 
-  [{:keys [item start-date end-date ticket-utils-token ticket-utils-secret realm-id access-token]}]
+  [{:keys 
+    [item accounts-payable-account start-date end-date ticket-utils-token ticket-utils-secret realm-id access-token]}]
   (merge
     (validate-item item)
+    (validate-accounts-payable-account accounts-payable-account)
     (validate-date "start-date" start-date)
     (validate-date "end-date" end-date)
     (validate-ticket-utils-secret ticket-utils-secret)
