@@ -130,7 +130,7 @@
     (get-accounts-payable-accounts-with-service data-service)))
 
 (defn get-vendor-name [vendor-name]
-  (str vendor-name "-Vendor"))
+  (str/replace (str vendor-name "-Vendor") "'" ""))
 
 (defn get-vendor-id [data-service vendor-name]
   (let [query (str "select * from vendor where DisplayName='" (get-vendor-name vendor-name) "'")]
@@ -141,7 +141,7 @@
     (create-entity data-service vendor)))
 
 (defn get-customer-name [customer-name]
-  (str customer-name "-Customer"))
+  (str/replace (str customer-name "-Customer") "'" ""))
 
 (defn get-customer-id [data-service customer-name]
   (let [query (str "select * from Customer where DisplayName='" (get-customer-name customer-name) "'")]
