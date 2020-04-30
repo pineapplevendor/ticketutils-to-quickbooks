@@ -7,6 +7,9 @@
 (defn get-users-table []
   (env :users-table))
 
+(defn get-domain []
+  (env :home-domain))
+
 (defn get-dynamo-options []
   {:access-key (env :aws-access-key-id)
    :secret-key (env :aws-secret-access-key)
@@ -34,7 +37,7 @@
 (defn get-connected-response [session auth-code realm-id]
   (set-tokens (:access-token session) auth-code realm-id)
   {:status 302
-   :headers {"Location" "/"}})
+   :headers {"Location" (get-domain)}})
 
 (defn get-tokens-for-session [auth-code]
   (let [open-id-tokens (quickbooks/get-open-id-tokens auth-code)]
@@ -43,7 +46,7 @@
 
 (defn get-logged-in-response [session auth-code]
   {:status 302
-   :headers {"Location" "/"}
+   :headers {"Location" (get-domain)}
    :session (merge session (get-tokens-for-session auth-code))})
 
 (defn get-validated-token [item token-key expiration-key]
