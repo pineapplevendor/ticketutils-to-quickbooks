@@ -1,5 +1,6 @@
 (ns accounting-integrations-website.quickbooks
   (:require [environ.core :refer [env]]
+            [again.core :as again]
             [accounting-integrations-website.quickbooks-client :as quickbooks-client]
             [clojure.string :as str]
             [clj-http.client :as client])
@@ -101,16 +102,16 @@
     (.revokeToken client refresh-token)))
 
 (defn create-entity [data-service entity]
-  (.add data-service entity))
+  (again/with-retries [100 1000 3000] (.add data-service entity)))
 
 (defn update-entity [data-service entity]
-  (.update data-service entity))
+  (again/with-retries [100 1000 3000] (.update data-service entity)))
 
 (defn delete-entity [data-service entity]
-  (.delete data-service entity))
+  (again/with-retries [100 1000 3000] (.delete data-service entity)))
 
 (defn get-entities [data-service query]
-  (.getEntities (.executeQuery data-service query)))
+  (again/with-retries [100 1000 3000] (.getEntities (.executeQuery data-service query))))
 
 (defn get-entity [data-service query]
   (first (get-entities data-service query)))
