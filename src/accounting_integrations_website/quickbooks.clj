@@ -165,7 +165,7 @@
 
 (defn create-invoice [data-service invoice]
   (let [customer-id (or (get-customer-id data-service (:customer invoice))
-                        (create-customer data-service (:customer invoice)))]
+                        (.getId (create-customer data-service (:customer invoice))))]
     (let [invoice (doto (Invoice.)
                     (.setDocNumber (str (:number invoice)))
                     (.setTxnDate (:date invoice))
@@ -214,7 +214,7 @@
 
 (defn create-purchase-order [data-service ap-account purchase-order]
   (let [vendor-id (or (get-vendor-id data-service (:vendor purchase-order))
-                      (create-vendor data-service (:vendor purchase-order)))]
+                      (.getId (create-vendor data-service (:vendor purchase-order))))]
     (let [purchase-order (doto (PurchaseOrder.)
                            (.setDocNumber (str (:number purchase-order)))
                            (.setTxnDate (:date purchase-order))
