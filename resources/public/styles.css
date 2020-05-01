@@ -3,6 +3,8 @@ body {
   color: #000;
 }
 
+#purchase-orders:not(:checked) ~ #accounts-payable-account-group {display: none}
+
 .hover-image {
   display: none;
 }

@@ -34,10 +34,10 @@
      [:div
       [:label {:for "purchase-orders"} "Purchase Orders "]
       [:input {:type "radio" :id "purchase-orders" :name "item" :value "purchase-orders" 
-               :checked (= item "purchase-orders")}]]]
-    [:p
-     [:h3 "Which QuickBooks account would you like to use to track accounts payable?"]
-     [:div (render-accounts-payable-selector access-token realm-id)]]
+               :checked (= item "purchase-orders")}]
+      [:div {:id "accounts-payable-account-group"}
+        [:h3 "Which QuickBooks account would you like to use to track accounts payable?"]
+        [:div (render-accounts-payable-selector access-token realm-id)]]]]
     [:p 
      [:h3 "What date range would you like to export the data from?"]
      [:div
