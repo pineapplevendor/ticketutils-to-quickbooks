@@ -12,3 +12,4 @@ set-env-vars.sh
 can-opener-user-credentials.csv
 *.swo
 *.swp
+src/accounting_integrations_website/cleanup_utils.clj
