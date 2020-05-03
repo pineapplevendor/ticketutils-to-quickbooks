@@ -24,9 +24,6 @@
 (defn get-client-secret []
   (env :quickbooks-client-secret))
 
-(defn get-redirect-url []
-  (env :quickbooks-redirect-url))
-
 (defn get-login-redirect-url []
   (env :quickbooks-logged-in-url))
 
