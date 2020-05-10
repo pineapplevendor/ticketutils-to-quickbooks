@@ -10,6 +10,7 @@
             [environ.core :refer [env]]
             [ring.middleware.session :refer [wrap-session]]
             [ring.middleware.session.cookie :refer [cookie-store]]
+            [ring.logger :as logger]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]])
   (:gen-class))
 
@@ -28,7 +29,24 @@
 ;;set this to lax so the session is still there when redirected back from quickbooks oauth
 (def config (assoc-in site-defaults [:session :cookie-attrs] {:same-site :lax}))
 
-(def app (wrap-defaults (auth-handler/wrap-user-state app-routes) config))
+(defn wrap-exception-handling [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Exception e
+        (println "A request failed with the following exception." e)
+        {:status 400 :body "Apologies, we've encountered an error. Please contact echavis@umich.edu for support."}))))
+
+(def app 
+  (-> app-routes
+      (logger/wrap-with-logger {:log-fn (fn [{:keys [level throwable message]}]
+                                          (println "level: " level)
+                                          (cond throwable (println "throwable: " throwable))
+                                          (println "message: " message))
+                                :redact-key? #{:code :ticket-utils-token :ticket-utils-secret :access-token}})
+      (auth-handler/wrap-user-state)
+      (wrap-defaults config)
+      (wrap-exception-handling)))
 
 (defn get-port []
   (or (Integer/parseInt (env :port)) 3000))
