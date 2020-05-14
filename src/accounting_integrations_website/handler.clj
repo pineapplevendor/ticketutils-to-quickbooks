@@ -19,6 +19,7 @@
   (GET "/" request (views/home request))
   (GET "/login" [] (redirect (quickbooks/get-login-url)))
   (GET "/logged-in" [code :as request] (sessions/get-logged-in-response (:session request) code))
+  (GET "/logged-out" request (sessions/get-logged-out-response request))
   (GET "/connect-to-quickbooks" [] (redirect (quickbooks/get-authorization-url)))
   (GET "/connected-to-quickbooks" [realmId code :as r] (sessions/get-connected-response (:session r) code realmId))
   (POST "/disconnect" request (views/disconnected-results-page request))

@@ -5,6 +5,10 @@ body {
 
 #purchase-orders:not(:checked) ~ #accounts-payable-account-group {display: none}
 
+#signed-in-header {
+  float: right;
+}
+
 .hover-image {
   display: none;
 }

@@ -112,21 +112,23 @@
         [:p "Please return "[:a {:href "/"} "home"] " to connect to QuickBooks"]))))
 
 (defn render-logged-in-home [user-state]
-  (if (session-controller/is-connected-to-quickbooks? user-state)
-    [:div
-     [:p "Click " [:a {:href "/export-data"} "here"] " to export your data to QuickBooks"]
-     [:p "Or click the button below to disconnect from QuickBooks"
-      [:form {:action "/disconnect" :method "POST"}
-       (anti-forgery/anti-forgery-field)
-       [:input {:type "submit" :value "Disconnect"}]]]]
-    [:p "Please use the button below to grant us permission to export your data to QuickBooks" 
-      [:a {:href "/connect-to-quickbooks"} [:div {:id "connect-to-quickbooks" :class "hover-image"}
-                                            [:img {:id "connect-to-quickbooks-default" 
-                                                   :class "default-image quickbooks-image" 
-                                                   :src (util/to-uri "/images/connect-to-quickbooks-default.png")}]
-                                            [:img {:id "connect-to-quickbooks-hover" 
-                                                   :class "hoverover-image quickbooks-image"
-                                                   :src (util/to-uri "/images/connect-to-quickbooks-hover.png")}]]]]))
+  [:div
+   [:div {:id "signed-in-header"} "Welcome, friend " [:a {:href "/logged-out"} "log out"]]
+    (if (session-controller/is-connected-to-quickbooks? user-state)
+      [:div
+       [:p "Click " [:a {:href "/export-data"} "here"] " to export your data to QuickBooks"]
+       [:p "Or click the button below to disconnect from QuickBooks"
+        [:form {:action "/disconnect" :method "POST"}
+         (anti-forgery/anti-forgery-field)
+         [:input {:type "submit" :value "Disconnect"}]]]]
+      [:p "Please use the button below to grant us permission to export your data to QuickBooks" 
+        [:a {:href "/connect-to-quickbooks"} [:div {:id "connect-to-quickbooks" :class "hover-image"}
+                                              [:img {:id "connect-to-quickbooks-default" 
+                                                     :class "default-image quickbooks-image" 
+                                                     :src (util/to-uri "/images/connect-to-quickbooks-default.png")}]
+                                              [:img {:id "connect-to-quickbooks-hover" 
+                                                     :class "hoverover-image quickbooks-image"
+                                                     :src (util/to-uri "/images/connect-to-quickbooks-hover.png")}]]]])])
 
 (defn disconnected-results-page [request]
   (session-controller/disconnect request)
