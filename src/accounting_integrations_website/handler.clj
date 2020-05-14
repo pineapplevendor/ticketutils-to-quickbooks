@@ -10,6 +10,7 @@
             [environ.core :refer [env]]
             [ring.middleware.session :refer [wrap-session]]
             [ring.middleware.session.cookie :refer [cookie-store]]
+            [ring.middleware.session-timeout :refer [wrap-absolute-session-timeout]]
             [ring.logger :as logger]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]])
   (:gen-class))
@@ -44,6 +45,8 @@
                                           (cond throwable (println "throwable: " throwable))
                                           (println "message: " message))
                                 :redact-key? #{:code :ticket-utils-token :ticket-utils-secret :access-token}})
+      (wrap-absolute-session-timeout {:timeout 1740 ;29 minutes * 60 seconds/minute = 1740 seconds
+                                      :timeout-handler sessions/get-logged-out-response})
       (auth-handler/wrap-user-state)
       (wrap-defaults config)
       (wrap-exception-handling)))

@@ -44,6 +44,11 @@
     (cond (quickbooks/validate-id-token (:id-token open-id-tokens))
           open-id-tokens)))
 
+(defn get-logged-out-response [request]
+  {:status 302
+   :headers {"Location" (get-domain)}
+   :session {}})
+
 (defn get-logged-in-response [session auth-code]
   {:status 302
    :headers {"Location" (get-domain)}
