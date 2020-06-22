@@ -76,7 +76,7 @@
 (defn get-items [secret token path partial-request-body-getter current-page]
   (let [request-body (partial-request-body-getter current-page)
         response (get-response-body (post-ticket-utils secret token path request-body))]
-    (if (= (:Page response) (:TotalPages response))
+    (if (>= (:Page response) (:TotalPages response))
            (:Items response)
            (concat (:Items response) (get-items secret token path partial-request-body-getter (inc current-page))))))
 
